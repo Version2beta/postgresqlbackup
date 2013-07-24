@@ -3,7 +3,7 @@ from distutils.core import setup
 setup(
   name = 'postgresqlbackup',
   url = 'https://github.com/Version2beta/postgresqlbackup',
-  version = '1.0.0',
+  version = '1.0.2',
   author = 'Rob Martin',
   author_email = 'rob@version2beta.com',
   packages = ['postgresqlbackup'],

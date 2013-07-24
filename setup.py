@@ -1,17 +1,17 @@
 from distutils.core import setup
 
 setup(
-  name = 'postgresql_backup',
-  url = 'https://github.com/Version2beta/postgresql_backup',
+  name = 'postgresqlbackup',
+  url = 'https://github.com/Version2beta/postgresqlbackup',
   version = '1.0.0',
   author = 'Rob Martin',
   author_email = 'rob@version2beta.com',
-  packages = ['postgresql_backup'],
+  packages = ['postgresqlbackup'],
   install_requires = [],
   data_files = [('/etc/postgresql', ['backups.conf'])],
   entry_points = {
     'console_scripts': [
-      'postgresql_backup = postgresql_backup:main'
+      'postgresql_backup = postgresqlbackup:main'
     ]
   }
 )

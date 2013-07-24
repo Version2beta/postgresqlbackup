@@ -30,12 +30,16 @@ def ensure_backup_directory(d):
     mkdir(d, '-p')
 
 def get_list_of_databases():
-  return sudo.su('postgres', '-c', 'psql', '-l')
+  dbs = sudo.su(
+      'postgres',
+      '-c',
+      'psql -Atc "select datname from pg_database where datistemplate = false order by datname;"')
+  return [db.rstrip() for db in dbs]
 
 def create_database_dump(d, f):
   "Dump database d using pg_dump to file 'f'."
   o = f.replace('.bz2', '')
-  sudo.su('postgres', '-c', 'pg_dump', _out=o)
+  sudo.su('postgres', '-c', 'pg_dump %s' % d, _out=o)
   bzip2('-f', o)
 
 def hash_of_file(f):
@@ -62,26 +66,28 @@ def store_hash_of_file(f, h):
   with open(f, 'w') as fh:
     fh.write(h)
 
-def store_file_in_bucket(s3, f, b):
+def store_file_in_bucket(s3, f, c):
   "Put file 'f' in S3 bucket 'b'."
+  b = c['s3_bucket']
+  d = c['local_directory']
   bucket = s3.lookup(b) or s3.create_bucket(b)
   key = Key(bucket)
   key.key = f[0]
-  with open(f, 'r') as f:
-    key.set_contents_from_file(f)
+  with open(d + '/' + f[0], 'r') as fd:
+    key.set_contents_from_file(fd)
   key.copy(b, f[1])
   key.copy(b, f[2])
 
 def copy_to_s3(s3, c, f):
   "Copy a file to S3 but only if the stored hash is different."
-  h = hash_of_file(c['local_directory'] + '/' + backup_file[0])
+  h = hash_of_file(c['local_directory'] + '/' + f[0])
   hash_file = c['local_directory'] + '/.' + f[0] + '.hash'
   if h == stored_hash_of_file(hash_file):
-    print "Files match; doing nothing."
+    print "Files match for %s; doing nothing." % f[0]
     return
   else:
-    print "Copying to S3."
-    store_file_in_bucket(s3, f, c['s3_bucket'])
+    print "Copying %s to S3." % f[0]
+    store_file_in_bucket(s3, f, c)
     store_hash_of_file(hash_file, h)
 
 def main():
@@ -107,7 +113,7 @@ def main():
     ]
 
     # create a local current backup
-    create_database_dump(_c['local_directory'] + '/' + backup_file[0])
+    create_database_dump(db, _c['local_directory'] + '/' + backup_file[0])
 
     # copy to S3
     copy_to_s3(s3, _c, backup_file)
